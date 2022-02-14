@@ -1,0 +1,306 @@
+zabbix_export:
+  version: '5.4'
+  date: '2022-02-14T20:04:29Z'
+  groups:
+    -
+      uuid: 57b7ae836ca64446ba2c296389c009b7
+      name: Templates/Modules
+  templates:
+    -
+      uuid: c46e314d3cb746b499951fe322f5f27b
+      template: CISCO-NEXUS-ENVMON-SNMP
+      name: CISCO-NEXUS-ENVMON-SNMP
+      description: |
+        Template for environmental (fan, temp and psu) for Cisco Nexus 9k.
+        
+        -- Jørn Ivar Holland
+      groups:
+        -
+          name: Templates/Modules
+      discovery_rules:
+        -
+          uuid: a259192528ea4fad842979e6aaaee326
+          name: 'FAN Discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#SENSOR_INFO},1.3.6.1.2.1.47.1.1.1.1.7]'
+          key: entPhysicalNameFan
+          delay: 12h
+          filter:
+            conditions:
+              -
+                macro: '{#SENSOR_INFO}'
+                value: '(^Fan Module-[1-2]$|^Fex-[1-9][0-9][0-9] FAN Module-[1-2]$|^Fex-[1-9][0-9][0-9] PowerSupply-[1-2] Fan-1$)'
+                formulaid: A
+          lifetime: 2d
+          description: |
+            entPhysicalName OBJECT-TYPE
+                SYNTAX      SnmpAdminString
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                        "The textual name of the physical entity.  The value of this
+                        object should be the name of the component as assigned by
+                        the local device and should be suitable for use in commands
+                        entered at the device's `console'.  This might be a text
+                        name (e.g., `console') or a simple component number (e.g.,
+                        port or module number, such as `1'), depending on the
+                        physical component naming syntax of the device.
+            
+                        If there is no local name, or if this object is otherwise
+                        not applicable, then this object contains a zero-length
+                        string.
+            
+                        Note that the value of entPhysicalName for two physical
+                        entities will be the same in the event that the console
+                        interface does not distinguish between them, e.g., slot-1
+                        and the card in slot-1."
+                ::= { entPhysicalEntry 7 }
+          item_prototypes:
+            -
+              uuid: 22f100fcab5a4972b0e21af730f1bba0
+              name: '{#SENSOR_INFO}'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.9.9.117.1.4.1.1.1.{#SNMPINDEX}'
+              key: 'cefcFanTrayOperStatus.[{#SNMPINDEX}]'
+              delay: 5m
+              history: 12d
+              description: |
+                cefcFanTrayOperStatus OBJECT-TYPE
+                    SYNTAX        INTEGER {
+                                     unknown(1),
+                                     up(2),
+                                     down(3),
+                                     warning(4)           
+                                  }
+                    MAX-ACCESS    read-only
+                    STATUS        current
+                    DESCRIPTION
+                        "The operational state of the fan or fan tray.
+                          unknown(1) - unknown.
+                          up(2) - powered on.
+                          down(3) - powered down.
+                          warning(4) - partial failure, needs replacement 
+                                       as soon as possible."
+                    ::= { cefcFanTrayStatusEntry 1 }
+              trigger_prototypes:
+                -
+                  uuid: 74723e6b642548908a82734c0beb85ee
+                  expression: 'last(/CISCO-NEXUS-ENVMON-SNMP/cefcFanTrayOperStatus.[{#SNMPINDEX}])=3'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/CISCO-NEXUS-ENVMON-SNMP/cefcFanTrayOperStatus.[{#SNMPINDEX}])=2'
+                  name: '{#SENSOR_INFO} is down'
+                  priority: HIGH
+                  description: '{#SENSOR_INFO} is down. Please check the fan module (if you are a fan of fans).'
+                -
+                  uuid: b9b038279dd248f8bf13c8d279586bde
+                  expression: 'last(/CISCO-NEXUS-ENVMON-SNMP/cefcFanTrayOperStatus.[{#SNMPINDEX}])=1'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/CISCO-NEXUS-ENVMON-SNMP/cefcFanTrayOperStatus.[{#SNMPINDEX}])=2'
+                  name: '{#SENSOR_INFO} is in unknown state'
+                  priority: WARNING
+                  description: '{#SENSOR_INFO} is in unknown state. Please check the fan module.'
+                -
+                  uuid: 7ab9b2a4c1f44ca79123928bc888740a
+                  expression: 'last(/CISCO-NEXUS-ENVMON-SNMP/cefcFanTrayOperStatus.[{#SNMPINDEX}])=4'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/CISCO-NEXUS-ENVMON-SNMP/cefcFanTrayOperStatus.[{#SNMPINDEX}])=2'
+                  name: '{#SENSOR_INFO} is in warning state'
+                  priority: WARNING
+                  description: '{#SENSOR_INFO} is in warning state. Please check the fan module.'
+        -
+          uuid: d21a58e601e2442bbeffdda1096df9f2
+          name: 'PSU Discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#SENSOR_INFO},1.3.6.1.2.1.47.1.1.1.1.7]'
+          key: entPhysicalNamePSU
+          delay: 12h
+          filter:
+            conditions:
+              -
+                macro: '{#SENSOR_INFO}'
+                value: '(^PowerSupply-[1-2]$|^.*Power Supply [1-2]$'
+                formulaid: A
+          lifetime: 2d
+          description: |
+            entPhysicalName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "The textual name of the physical entity. The value of this
+            object should be the name of the component as assigned by
+            the local device and should be suitable for use in commands
+            entered at the devices `console. This might be a text
+            name, such as `console or a simple component number (e.g.,
+            port or module number), such as `1, depending on the
+            physical component naming syntax of the device.
+            If there is no local name, or this object is otherwise not
+            applicable, then this object contains a zero-length string.
+            Note that the value of entPhysicalName for two physical
+            entities will be the same in the event that the console
+            interface does not distinguish between them, e.g., slot-1
+            and the card in slot-1."
+          item_prototypes:
+            -
+              uuid: 16f066eabc2c44be95ec600a168d5306
+              name: '{#SENSOR_INFO}'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.9.9.117.1.1.2.1.2.{#SNMPINDEX}'
+              key: 'cefcFRUPowerOperStatus.[{#SNMPINDEX}]'
+              delay: 5m
+              history: 12d
+              description: |
+                cefcFRUPowerOperStatus OBJECT-TYPE
+                    SYNTAX        PowerOperType
+                    MAX-ACCESS    read-only
+                    STATUS        current
+                    DESCRIPTION
+                        "Operational FRU power state."
+                    ::= { cefcFRUPowerStatusEntry 2 }
+              trigger_prototypes:
+                -
+                  uuid: 8b834659061942bfafbcf44a0e37f90a
+                  expression: 'last(/CISCO-NEXUS-ENVMON-SNMP/cefcFRUPowerOperStatus.[{#SNMPINDEX}])<>2'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/CISCO-NEXUS-ENVMON-SNMP/cefcFRUPowerOperStatus.[{#SNMPINDEX}])=2'
+                  name: '{#SENSOR_INFO}  is in critical state'
+                  priority: HIGH
+        -
+          uuid: ee6eb779310a418c8597050b0f00bc28
+          name: 'Temperature Back Discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#SENSOR_INFO},1.3.6.1.2.1.47.1.1.1.1.7]'
+          key: entPhysicalNameTEMP
+          delay: 12h
+          filter:
+            conditions:
+              -
+                macro: '{#SENSOR_INFO}'
+                value: '(^.*BACK.*$|^.*Outlet-[1-2].*$)'
+                formulaid: A
+          lifetime: 2d
+          description: |
+            entPhysicalName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "The textual name of the physical entity. The value of this
+            object should be the name of the component as assigned by
+            the local device and should be suitable for use in commands
+            entered at the devices `console. This might be a text
+            name, such as `console or a simple component number (e.g.,
+            port or module number), such as `1, depending on the
+            physical component naming syntax of the device.
+            If there is no local name, or this object is otherwise not
+            applicable, then this object contains a zero-length string.
+            Note that the value of entPhysicalName for two physical
+            entities will be the same in the event that the console
+            interface does not distinguish between them, e.g., slot-1
+            and the card in slot-1."
+          item_prototypes:
+            -
+              uuid: 9e2a3ec0344743b8bfb8783ae714111f
+              name: '{#SENSOR_INFO}'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.9.9.91.1.1.1.1.4.{#SNMPINDEX}'
+              key: 'entSensorValue.[{#SNMPINDEX}]'
+              delay: 5m
+              history: 12d
+              description: |
+                entSensorValue OBJECT-TYPE
+                SYNTAX SensorValue
+                MAX-ACCESS read-only
+                STATUS current
+                DESCRIPTION
+                "This variable reports the most recent measurement seen
+                by the sensor.
+                To correctly display or interpret this variables value,
+                you must also know entSensorType, entSensorScale, and
+                entSensorPrecision.
+                However, you can compare entSensorValue with the threshold
+                values given in entSensorThresholdTable without any semantic
+                knowledge."
+              trigger_prototypes:
+                -
+                  uuid: 3124b27dd5e14718a9e29bc506cb8dd9
+                  expression: 'avg(/CISCO-NEXUS-ENVMON-SNMP/entSensorValue.[{#SNMPINDEX}],10m)>{$TEMP_BACK_CRIT}'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'avg(/CISCO-NEXUS-ENVMON-SNMP/entSensorValue.[{#SNMPINDEX}],10m)<{$TEMP_BACK_CRIT}'
+                  name: '{#SENSOR_INFO}: temperatur is above ciritical threshold'
+                  priority: AVERAGE
+                  description: '{#SENSOR_INFO} is above critical threshold. Bacon time?'
+        -
+          uuid: daf343f5bd7e4f649f5ec2efff428a91
+          name: 'Temperature CPU Discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#SENSOR_INFO},1.3.6.1.2.1.47.1.1.1.1.7]'
+          key: entPhysicalNameTEMPCPU
+          delay: 12h
+          filter:
+            conditions:
+              -
+                macro: '{#SENSOR_INFO}'
+                value: '(^.*CPU.*$|^.*Die-[1-2].*$)'
+                formulaid: A
+          lifetime: 2d
+          description: |
+            entPhysicalName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "The textual name of the physical entity. The value of this
+            object should be the name of the component as assigned by
+            the local device and should be suitable for use in commands
+            entered at the devices `console. This might be a text
+            name, such as `console or a simple component number (e.g.,
+            port or module number), such as `1, depending on the
+            physical component naming syntax of the device.
+            If there is no local name, or this object is otherwise not
+            applicable, then this object contains a zero-length string.
+            Note that the value of entPhysicalName for two physical
+            entities will be the same in the event that the console
+            interface does not distinguish between them, e.g., slot-1
+            and the card in slot-1."
+          item_prototypes:
+            -
+              uuid: 8ea1b20249184df4aaa406a3ce6055bd
+              name: '{#SENSOR_INFO}'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.9.9.91.1.1.1.1.4.{#SNMPINDEX}'
+              key: 'entSensorValueCPU.[{#SNMPINDEX}]'
+              delay: 5m
+              history: 12d
+              description: |
+                entSensorValue OBJECT-TYPE
+                SYNTAX SensorValue
+                MAX-ACCESS read-only
+                STATUS current
+                DESCRIPTION
+                "This variable reports the most recent measurement seen
+                by the sensor.
+                To correctly display or interpret this variables value,
+                you must also know entSensorType, entSensorScale, and
+                entSensorPrecision.
+                However, you can compare entSensorValue with the threshold
+                values given in entSensorThresholdTable without any semantic
+                knowledge."
+              trigger_prototypes:
+                -
+                  uuid: cfdae4aaea034b2ab7a8625083811aa1
+                  expression: 'avg(/CISCO-NEXUS-ENVMON-SNMP/entSensorValueCPU.[{#SNMPINDEX}],10m)>{$TEMP_CPU_CRIT}'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'avg(/CISCO-NEXUS-ENVMON-SNMP/entSensorValueCPU.[{#SNMPINDEX}],10m)<{$TEMP_CPU_CRIT}'
+                  name: '{#SENSOR_INFO}: temperatur is above ciritical threshold'
+                  priority: AVERAGE
+                  description: '{#SENSOR_INFO} is above critical threshold. Bacon time?'
+      macros:
+        -
+          macro: '{$TEMP_BACK_CRIT}'
+          value: '65'
+          description: 'For both outlet and back (celcius)'
+        -
+          macro: '{$TEMP_CPU_CRIT}'
+          value: '90'
+          description: 'For both cpu and die (celcius)'
