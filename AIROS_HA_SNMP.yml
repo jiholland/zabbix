@@ -1,0 +1,55 @@
+zabbix_export:
+  version: '6.0'
+  date: '2022-05-18T12:02:07Z'
+  groups:
+    -
+      uuid: 36bff6c29af64692839d077febfc7079
+      name: 'Templates/Network devices'
+  templates:
+    -
+      uuid: 67d1385976bf4b529273c4c42bfffc0a
+      template: AIREOS-HA-SNMP
+      name: AIREOS-HA-SNMP
+      description: |
+        Monitor HA state Cisco AireOS 5520 wlc.
+      groups:
+        -
+          name: 'Templates/Network devices'
+      items:
+        -
+          uuid: 0b53ac232b5b46d4b659c6fffb190664
+          name: 'High Availability State'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.9.9.176.1.2.15.0
+          key: cRFStatusIssuState
+          delay: 5m
+          history: 7d
+          trends: '0'
+          value_type: TEXT
+          description: |
+            cRFStatusIssuState OBJECT-TYPE
+            SYNTAX RFIssuState
+            MAX-ACCESS read-only
+            STATUS deprecated
+            DESCRIPTION "The current ISSU state of the system."
+          tags:
+            -
+              tag: component
+              value: 'high availability'
+          triggers:
+            -
+              uuid: 14a7ec8b740541acb0f3f93d320f803b
+              expression: 'find(/AIREOS-HA-SNMP/cRFStatusIssuState,,"like","SSO")=0'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/AIREOS-HA-SNMP/cRFStatusIssuState,,"like","SSO")=1'
+              name: '{HOSTNAME} HA state is not Active/Standby Hot'
+              priority: HIGH
+              description: |
+                HA is not active/standby hot :(
+                
+                https://ukgp-wlc-p01.kda.kongsberg.com
+              manual_close: 'YES'
+              tags:
+                -
+                  tag: scope
+                  value: availability

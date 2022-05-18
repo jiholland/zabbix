@@ -1,2 +1,2 @@
 # zabbix
-zabbix templates for cisco and checkpoint
+Zabbix templates for Cisco Catalyst, Cisco Nexus and Checkpoint.

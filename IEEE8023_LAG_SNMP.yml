@@ -1,0 +1,72 @@
+zabbix_export:
+  version: '6.0'
+  date: '2022-05-18T11:56:53Z'
+  groups:
+    -
+      uuid: 57b7ae836ca64446ba2c296389c009b7
+      name: Templates/Modules
+  templates:
+    -
+      uuid: b0a6010892114d7b802f5051c2b3c4ec
+      template: IEEE8023-LAG-SNMP
+      name: IEEE8023-LAG-SNMP
+      description: |
+        Template for monitoring if active LAG (etherchannel) is running on single link (not aggregated). Filtering out all LAG-interfaces (see macros) with MAC 00:00:00:00:00:00 as they are not active.
+      groups:
+        -
+          name: Templates/Modules
+      discovery_rules:
+        -
+          uuid: 0b88dba548c44fb69372a7206ca4dd1f
+          name: 'LAG Discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#SENSOR_INFO},1.2.840.10006.300.43.1.1.1.1.2]'
+          key: lag.discovery
+          delay: 6h
+          filter:
+            conditions:
+              -
+                macro: '{#SENSOR_INFO}'
+                value: '{$LAG.MAC.FILTER}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: A
+          description: 'This object (#SENSOR_INFO) contains a 6-octet read-only value carrying the individual MAC address assigned to the Aggregator.'
+          item_prototypes:
+            -
+              uuid: 8f4ea4cd60e3456e9dca1986b83a156c
+              name: 'LAG {#SENSOR_INFO} Aggregate Status'
+              type: SNMP_AGENT
+              snmp_oid: '1.2.840.10006.300.43.1.1.1.1.5.{#SNMPINDEX}'
+              key: 'dot3adAggAggregateOrIndividual[{#SNMPINDEX}]'
+              delay: 3m
+              history: 7d
+              description: 'A read-only Boolean value indicating whether the Aggregator represents an Aggregate (''TRUE'') or an Individual link (''FALSE'').'
+              tags:
+                -
+                  tag: component
+                  value: network
+                -
+                  tag: interface
+                  value: '{#SENSOR_INFO}'
+              trigger_prototypes:
+                -
+                  uuid: 60f39c50c7d04461b9400690f68d34b9
+                  expression: 'last(/IEEE8023-LAG-SNMP/dot3adAggAggregateOrIndividual[{#SNMPINDEX}])=2'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/IEEE8023-LAG-SNMP/dot3adAggAggregateOrIndividual[{#SNMPINDEX}])=1'
+                  name: 'Etherchannel {#SENSOR_INFO} is not aggregated'
+                  priority: WARNING
+                  description: 'LAG/Etherchannel with MAC {#SENSOR_INFO} is running on individual link.'
+                  manual_close: 'YES'
+                  tags:
+                    -
+                      tag: scope
+                      value: availability
+                    -
+                      tag: scope
+                      value: performance
+      macros:
+        -
+          macro: '{$LAG.MAC.FILTER}'
+          value: '00 00 00 00 00 00'
+          description: 'Ignore/filter LAG Interfaces with MAC 00 00 00 00 00 00 - as they are not in use.'

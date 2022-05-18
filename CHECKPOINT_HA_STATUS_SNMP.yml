@@ -1,6 +1,6 @@
 zabbix_export:
-  version: '5.4'
-  date: '2022-02-14T20:03:48Z'
+  version: '6.0'
+  date: '2022-05-18T11:59:13Z'
   groups:
     -
       uuid: 57b7ae836ca64446ba2c296389c009b7
@@ -12,8 +12,6 @@ zabbix_export:
       name: CHECKPOINT-HA-SNMP
       description: |
         Template for monitoring HA Status on Checkpoint Firewalls.
-        
-        -- Jorn Ivar Holland
       groups:
         -
           name: Templates/Modules
@@ -37,8 +35,8 @@ zabbix_export:
             "HA state"
           tags:
             -
-              tag: Application
-              value: 'Checkpoint HA'
+              tag: component
+              value: 'high availability'
           triggers:
             -
               uuid: 5843460a73034c059597ed7e7b60be04
@@ -47,6 +45,10 @@ zabbix_export:
               priority: INFO
               description: 'HA State has changed to Active. Ack to close.'
               manual_close: 'YES'
+              tags:
+                -
+                  tag: scope
+                  value: availability
             -
               uuid: f9e0a3800e74417bb325c9b4c18a990c
               expression: '(last(/CHECKPOINT-HA-SNMP/haState,#1)<>last(/CHECKPOINT-HA-SNMP/haState,#2))=1  and find(/CHECKPOINT-HA-SNMP/haState,,"like","standby")=1'
@@ -54,9 +56,17 @@ zabbix_export:
               priority: INFO
               description: 'HA State change to Standby. Ack to close.'
               manual_close: 'YES'
+              tags:
+                -
+                  tag: scope
+                  value: availability
             -
               uuid: 3b5db531eb89451ab7b9b8026a88ad9d
               expression: 'find(/CHECKPOINT-HA-SNMP/haState,,"like","active")=0 and find(/CHECKPOINT-HA-SNMP/haState,,"like","standby")=0'
               name: '{HOSTNAME} HA state is not Active/Standby'
               priority: HIGH
               manual_close: 'YES'
+              tags:
+                -
+                  tag: scope
+                  value: availability

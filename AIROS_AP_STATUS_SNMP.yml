@@ -1,6 +1,6 @@
 zabbix_export:
-  version: '5.4'
-  date: '2022-02-14T20:03:13Z'
+  version: '6.0'
+  date: '2022-05-18T11:58:17Z'
   groups:
     -
       uuid: 57b7ae836ca64446ba2c296389c009b7
@@ -11,12 +11,7 @@ zabbix_export:
       template: AIREOS-AP-STATUS-SNMP
       name: AIREOS-AP-STATUS-SNMP
       description: |
-        Template for monitoring the current operation state of AP.
-        
-        Vendor: Cisco
-        Tested on Cisco AireOS WLC 5520
-        
-        -- Jørn Ivar Holland
+        Monitoring operation state of AP on Cisco AireOS WLC.
       groups:
         -
           name: Templates/Modules
@@ -27,8 +22,7 @@ zabbix_export:
           type: SNMP_AGENT
           snmp_oid: 'discovery[{#SENSOR_INFO},1.3.6.1.4.1.14179.2.2.1.1.3]'
           key: bsnAPName
-          delay: 1h
-          lifetime: 7d
+          delay: 6h
           description: |
             bsnAPName OBJECT-TYPE
             SYNTAX OCTET STRING (SIZE (0..32))
@@ -58,8 +52,8 @@ zabbix_export:
                 "Operation State of the AP. When AP associates with the Airespace Switch its state will be associated. When Airespace AP is disassociated from the Switch, its state will be disassociating. The state is downloading when the AP is downloading its firmware."
               tags:
                 -
-                  tag: Application
-                  value: 'AP Status'
+                  tag: component
+                  value: ap
               trigger_prototypes:
                 -
                   uuid: f4e8f98874224c7eb780e7b0ca5c30c9
@@ -69,3 +63,7 @@ zabbix_export:
                   name: '{#SENSOR_INFO}: Disconnected from WLC'
                   priority: HIGH
                   description: 'LAP {#SENSOR_INFO} is not associated with the WLC.'
+                  tags:
+                    -
+                      tag: scope
+                      value: availability
