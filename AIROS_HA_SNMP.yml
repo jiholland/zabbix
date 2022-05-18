@@ -46,8 +46,6 @@ zabbix_export:
               priority: HIGH
               description: |
                 HA is not active/standby hot :(
-                
-                https://ukgp-wlc-p01.kda.kongsberg.com
               manual_close: 'YES'
               tags:
                 -
